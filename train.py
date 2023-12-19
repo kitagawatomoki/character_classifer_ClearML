@@ -207,6 +207,7 @@ def main():
 
                 global_step+=1
                 s_time = time.time()
+                model.train()
 
     torch.save(model.state_dict(), os.path.join(save_model, "classifier_model.pt"))
 
