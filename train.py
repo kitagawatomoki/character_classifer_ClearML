@@ -157,7 +157,7 @@ def main():
             optimizer.step()
             train_step+=1
 
-            if i/int(BASE_NUM_ETL_DATA/config["batch_size"])==0:
+            if i%int(BASE_NUM_ETL_DATA/config["batch_size"])==0:
                 model.eval()#学習モードに移行
                 test_loss = 0
                 test_preds = []
@@ -206,6 +206,7 @@ def main():
                     torch.save(model.state_dict(), os.path.join(save_model, "classifier_model_iter%s.pt"%(global_step)))
 
                 global_step+=1
+                s_time = time.time()
 
     torch.save(model.state_dict(), os.path.join(save_model, "classifier_model.pt"))
 
