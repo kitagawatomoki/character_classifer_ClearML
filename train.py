@@ -8,6 +8,7 @@ import os
 import time
 import json
 import sys
+from tqdm import tqdm
 from sklearn.metrics import accuracy_score
 
 from clearml import Task
@@ -79,7 +80,7 @@ def main():
 
     train_list = train_list+gen_list
 
-    epochs = int(100*((len(train_list)/BASE_NUM_ETL_DATA)))
+    epochs = int(100*((BASE_NUM_ETL_DATA/len(train_list))))
     print("epochs", epochs)
     if epochs < 1:
         epochs = 10
@@ -114,7 +115,7 @@ def main():
     config["std"] = model.default_cfg["std"]
 
     train_data = Dataset(use_list, train_list, config, "train")
-    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size = config["batch_size"], shuffle=True, num_workers=2)
+    train_dataloader = torch.utils.data.DataLoader(train_data, batch_size = config["batch_size"], shuffle=True, num_workers=8)
 
     test_data = Dataset(use_list, val_list, config, "val")
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size = int(config["batch_size"]/4), shuffle=False, num_workers=2)
@@ -132,11 +133,12 @@ def main():
     test_step = 0
     global_step = 0
     best_acc = 0
+
     for epoch in range(epochs):
         model.train()#学習モードに移行
         s_time = time.time()
 
-        for i, batch in enumerate(train_dataloader):
+        for batch in train_dataloader:
             images, labels = batch
             images, labels = images.to(device), labels.to(device)
 
@@ -155,14 +157,13 @@ def main():
 
             loss.backward()
             optimizer.step()
-            train_step+=1
 
-            if i%int(BASE_NUM_ETL_DATA/config["batch_size"])==0:
+            if train_step%int(BASE_NUM_ETL_DATA/config["batch_size"])==0:
                 model.eval()#学習モードに移行
                 test_loss = 0
                 test_preds = []
                 test_labels = []
-                for i, batch in enumerate(test_dataloader):
+                for batch in test_dataloader:
                     images, labels = batch
                     images, labels = images.to(device), labels.to(device)
 
@@ -208,6 +209,8 @@ def main():
                 global_step+=1
                 s_time = time.time()
                 model.train()
+
+            train_step+=1
 
     torch.save(model.state_dict(), os.path.join(save_model, "classifier_model.pt"))
 
